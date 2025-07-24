@@ -1,9 +1,5 @@
 import re
-from opencc import OpenCC
 import string
-
-t2s_converter = OpenCC("t2s")
-s2t_converter = OpenCC("s2t")
 
 EMOJI_PATTERN = re.compile(
     "["
@@ -83,35 +79,24 @@ def normalize_hinglish_text(text):
     
     return text
 
-def normalize_text(text, language, strip=True):
-    """
-    Normalize text with language-specific handling
-    """
-    # Step 1: Replace '-' with ' ' and remove punctuation
-    text = text.translate(TRANSLATION_TABLE)
+class LyricNormalizer:
+    def normalize(self, text):
+        """
+        Normalize text with Hindi/Hinglish-specific handling
+        """
+        # Step 1: Replace '-' with ' ' and remove punctuation
+        text = text.translate(TRANSLATION_TABLE)
 
-    # Step 2: Remove emoji
-    text = EMOJI_PATTERN.sub("", text)
+        # Step 2: Remove emoji
+        text = EMOJI_PATTERN.sub("", text)
 
-    # Step 3: Replace consecutive whitespace with single space
-    text = SPACE_PATTERN.sub(" ", text)
+        # Step 3: Replace consecutive whitespace with single space
+        text = SPACE_PATTERN.sub(" ", text)
 
-    # Step 4: Strip whitespace if needed
-    if strip:
+        # Step 4: Strip whitespace
         text = text.strip()
 
-    # Step 5: Language-specific processing
-    if language == "zh":
-        text = t2s_converter.convert(text)
-        text = text.lower()
-    elif language == "yue":
-        text = s2t_converter.convert(text)
-        text = text.lower()
-    elif language == "hi":
-        # Hinglish specific normalization
+        # Step 5: Apply Hinglish normalization
         text = normalize_hinglish_text(text)
-    else:
-        # Default case: convert to lowercase
-        text = text.lower()
-    
-    return text
+        
+        return text

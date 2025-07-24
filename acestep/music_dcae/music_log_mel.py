@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 from torchaudio.transforms import MelScale
+import torchaudio
 
 
 class LinearSpectrogram(nn.Module):
@@ -113,3 +114,44 @@ class LogMelSpectrogram(nn.Module):
             return x, self.compress(linear)
 
         return x
+
+
+class MusicLogMel:
+    def __init__(
+        self,
+        sample_rate=44100,
+        n_fft=2048,
+        win_length=2048,
+        hop_length=512,
+        n_mels=128,
+        center=False,
+        f_min=0.0,
+        f_max=None,
+    ):
+        self.mel_spec = LogMelSpectrogram(
+            sample_rate=sample_rate,
+            n_fft=n_fft,
+            win_length=win_length,
+            hop_length=hop_length,
+            n_mels=n_mels,
+            center=center,
+            f_min=f_min,
+            f_max=f_max,
+        )
+
+    def process(self, audio_path):
+        """Process audio file to mel spectrogram"""
+        # Load audio file
+        waveform, sample_rate = torchaudio.load(audio_path)
+        
+        # Convert to mono if stereo
+        if waveform.size(0) > 1:
+            waveform = torch.mean(waveform, dim=0, keepdim=True)
+        
+        # Normalize audio
+        waveform = waveform / torch.abs(waveform).max()
+        
+        # Convert to mel spectrogram
+        mel_spec = self.mel_spec(waveform)
+        
+        return mel_spec.squeeze(0).numpy()  # Remove batch dimension
