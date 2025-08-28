@@ -11,43 +11,24 @@ import librosa
 import os
 
 
-TAG_DEFAULT = "funk, pop, soul, rock, melodic, guitar, drums, bass, keyboard, percussion, 105 BPM, energetic, upbeat, groovy, vibrant, dynamic"
-LYRIC_DEFAULT = """[verse]
-Neon lights they flicker bright
-City hums in dead of night
-Rhythms pulse through concrete veins
-Lost in echoes of refrains
+TAG_DEFAULT = "hip hop, 808 bass, 60 bpm, bold, urban, intense, male vocals, rhythmic vocals, loud vocals, clear pronunciation, guitar, keyboard, energetic"
+LYRIC_DEFAULT = """[Intro]
+yo yo, Vijay kee kahaanee, 
+पेटीएम का swag, 
+तीस दिन में किए, एक सौ उन्नीस payments,
 
-[verse]
-Bassline groovin' in my chest
-Heartbeats match the city's zest
-Electric whispers fill the air
-Synthesized dreams everywhere
+[Verse]
+Shopping करता है तू आजिओ पे ऐसे,
+Fashion का king, और दोस्तों का favorite face,
+ऐसा यार है तू, दोस्त हैं loyal,
+Transaction details की कोई नहीं बात lowercase royal,
 
-[chorus]
-Turn it up and let it flow
-Feel the fire let it grow
-In this rhythm we belong
-Hear the night sing out our song
+[Chorus]
+Cashback मिला तुझको भी सही,
+Rewards unlocked, कैसे नहीं खुश करें भाई,
 
-[verse]
-Guitar strings they start to weep
-Wake the soul from silent sleep
-Every note a story told
-In this night we’re bold and gold
-
-[bridge]
-Voices blend in harmony
-Lost in pure cacophony
-Timeless echoes timeless cries
-Soulful shouts beneath the skies
-
-[verse]
-Keyboard dances on the keys
-Melodies on evening breeze
-Catch the tune and hold it tight
-In this moment we take flight
-"""
+[Outro]
+ ज़्यादा cashback, कम stress, पेटीएम करो,"""
 
 # First, let's define the presets at the top of the file, after the imports
 GENRE_PRESETS = {
@@ -72,7 +53,7 @@ def update_tags_from_preset(preset_name):
 
 def create_output_ui(task_name="Text2Music"):
     # For many consumer-grade GPU devices, only one batch can be run
-    output_audio1 = gr.Audio(type="filepath", label=f"{task_name} Generated Audio 1")
+    output_audio1 = gr.Audio(type="filepath", label=f"{task_name} Generated Audio 1", show_download_button=True)
     # output_audio2 = gr.Audio(type="filepath", label="Generated Audio 2")
     with gr.Accordion(f"{task_name} Parameters", open=False):
         input_params_json = gr.JSON(label=f"{task_name} Parameters")
@@ -113,52 +94,17 @@ def create_text2music_ui(
                     -1,
                     240.0,
                     step=0.00001,
-                    value=-1,
+                    value=80,
                     label="Audio Duration",
                     interactive=True,
                     info="-1 means random duration (30 ~ 240).",
                     scale=9,
                 )
-                format = gr.Dropdown(choices=["mp3", "ogg", "flac", "wav"], value="wav", label="Format")
+                format = gr.Dropdown(choices=["mp3", "ogg", "flac", "wav"], value="mp3", label="Format")
                 sample_bnt = gr.Button("Sample", variant="secondary", scale=1)
 
             # audio2audio
-            with gr.Row(equal_height=True):
-                audio2audio_enable = gr.Checkbox(label="Enable Audio2Audio", value=False, info="Check to enable Audio-to-Audio generation using a reference audio.", elem_id="audio2audio_checkbox")
-                lora_name_or_path = gr.Dropdown(
-                    label="Lora Name or Path",
-                    choices=["ACE-Step/ACE-Step-v1-chinese-rap-LoRA", "none"],
-                    value="none",
-                    allow_custom_value=True,
-                    min_width=300
-                )
-                lora_weight = gr.Number(value=1.0, label="Lora weight", step=0.1, maximum=3, minimum=-3)
-
-            ref_audio_input = gr.Audio(type="filepath", label="Reference Audio (for Audio2Audio)", visible=False, elem_id="ref_audio_input", show_download_button=True)
-            ref_audio_strength = gr.Slider(
-                label="Refer audio strength",
-                minimum=0.0,
-                maximum=1.0,
-                step=0.01,
-                value=0.5,
-                elem_id="ref_audio_strength",
-                visible=False,
-                interactive=True,
-            )
-
-            def toggle_ref_audio_visibility(is_checked):
-                return (
-                    gr.update(visible=is_checked, elem_id="ref_audio_input"),
-                    gr.update(visible=is_checked, elem_id="ref_audio_strength"),
-                )
-
-            audio2audio_enable.change(
-                fn=toggle_ref_audio_visibility,
-                inputs=[audio2audio_enable],
-                outputs=[ref_audio_input, ref_audio_strength],
-            )
-
-            with gr.Column(scale=2):
+            with gr.Column():
                 with gr.Group():
                     gr.Markdown("""<center>Support tags, descriptions, and scene. Use commas to separate different tags.<br>Tags and lyrics examples are from AI music generation community.</center>""")
                     with gr.Row():
@@ -196,7 +142,7 @@ def create_text2music_ui(
                     minimum=1,
                     maximum=200,
                     step=1,
-                    value=60,
+                    value=120,
                     label="Infer Steps",
                     interactive=True,
                 )
@@ -355,8 +301,6 @@ def create_text2music_ui(
                         retake_seeds=retake_seeds,
                         retake_variance=retake_variance,
                         task="retake",
-                        lora_name_or_path="none" if "lora_name_or_path" not in json_data else json_data["lora_name_or_path"],
-                        lora_weight=1 if "lora_weight" not in json_data else json_data["lora_weight"]
                     )
 
                 retake_bnt.click(
@@ -367,153 +311,6 @@ def create_text2music_ui(
                         retake_seeds,
                     ],
                     outputs=retake_outputs + [retake_input_params_json],
-                )
-            with gr.Tab("repainting"):
-                retake_variance = gr.Slider(
-                    minimum=0.0, maximum=1.0, step=0.01, value=0.2, label="variance"
-                )
-                retake_seeds = gr.Textbox(
-                    label="repaint seeds (default None)", placeholder="", value=None
-                )
-                repaint_start = gr.Slider(
-                    minimum=0.0,
-                    maximum=240.0,
-                    step=0.01,
-                    value=0.0,
-                    label="Repaint Start Time",
-                    interactive=True,
-                )
-                repaint_end = gr.Slider(
-                    minimum=0.0,
-                    maximum=240.0,
-                    step=0.01,
-                    value=30.0,
-                    label="Repaint End Time",
-                    interactive=True,
-                )
-                repaint_source = gr.Radio(
-                    ["text2music", "last_repaint", "upload"],
-                    value="text2music",
-                    label="Repaint Source",
-                    elem_id="repaint_source",
-                )
-
-                repaint_source_audio_upload = gr.Audio(
-                    label="Upload Audio",
-                    type="filepath",
-                    visible=False,
-                    elem_id="repaint_source_audio_upload",
-                    show_download_button=True,
-                )
-                repaint_source.change(
-                    fn=lambda x: gr.update(
-                        visible=x == "upload", elem_id="repaint_source_audio_upload"
-                    ),
-                    inputs=[repaint_source],
-                    outputs=[repaint_source_audio_upload],
-                )
-
-                repaint_bnt = gr.Button("Repaint", variant="primary")
-                repaint_outputs, repaint_input_params_json = create_output_ui("Repaint")
-
-                def repaint_process_func(
-                    text2music_json_data,
-                    repaint_json_data,
-                    retake_variance,
-                    retake_seeds,
-                    repaint_start,
-                    repaint_end,
-                    repaint_source,
-                    repaint_source_audio_upload,
-                    prompt,
-                    lyrics,
-                    infer_step,
-                    guidance_scale,
-                    scheduler_type,
-                    cfg_type,
-                    omega_scale,
-                    manual_seeds,
-                    guidance_interval,
-                    guidance_interval_decay,
-                    min_guidance_scale,
-                    use_erg_tag,
-                    use_erg_lyric,
-                    use_erg_diffusion,
-                    oss_steps,
-                    guidance_scale_text,
-                    guidance_scale_lyric,
-                ):
-                    if repaint_source == "upload":
-                        src_audio_path = repaint_source_audio_upload
-                        audio_duration = librosa.get_duration(filename=src_audio_path)
-                        json_data = {"audio_duration": audio_duration}
-                    elif repaint_source == "text2music":
-                        json_data = text2music_json_data
-                        src_audio_path = json_data["audio_path"]
-                    elif repaint_source == "last_repaint":
-                        json_data = repaint_json_data
-                        src_audio_path = json_data["audio_path"]
-
-                    return text2music_process_func(
-                        format.value,
-                        json_data["audio_duration"],
-                        prompt,
-                        lyrics,
-                        infer_step,
-                        guidance_scale,
-                        scheduler_type,
-                        cfg_type,
-                        omega_scale,
-                        manual_seeds,
-                        guidance_interval,
-                        guidance_interval_decay,
-                        min_guidance_scale,
-                        use_erg_tag,
-                        use_erg_lyric,
-                        use_erg_diffusion,
-                        oss_steps,
-                        guidance_scale_text,
-                        guidance_scale_lyric,
-                        retake_seeds=retake_seeds,
-                        retake_variance=retake_variance,
-                        task="repaint",
-                        repaint_start=repaint_start,
-                        repaint_end=repaint_end,
-                        src_audio_path=src_audio_path,
-                        lora_name_or_path="none" if "lora_name_or_path" not in json_data else json_data["lora_name_or_path"],
-                        lora_weight=1 if "lora_weight" not in json_data else json_data["lora_weight"]
-                    )
-
-                repaint_bnt.click(
-                    fn=repaint_process_func,
-                    inputs=[
-                        input_params_json,
-                        repaint_input_params_json,
-                        retake_variance,
-                        retake_seeds,
-                        repaint_start,
-                        repaint_end,
-                        repaint_source,
-                        repaint_source_audio_upload,
-                        prompt,
-                        lyrics,
-                        infer_step,
-                        guidance_scale,
-                        scheduler_type,
-                        cfg_type,
-                        omega_scale,
-                        manual_seeds,
-                        guidance_interval,
-                        guidance_interval_decay,
-                        min_guidance_scale,
-                        use_erg_tag,
-                        use_erg_lyric,
-                        use_erg_diffusion,
-                        oss_steps,
-                        guidance_scale_text,
-                        guidance_scale_lyric,
-                    ],
-                    outputs=repaint_outputs + [repaint_input_params_json],
                 )
             with gr.Tab("edit"):
                 edit_prompt = gr.Textbox(lines=2, label="Edit Tags", max_lines=4)
@@ -692,159 +489,6 @@ def create_text2music_ui(
                     ],
                     outputs=edit_outputs + [edit_input_params_json],
                 )
-            with gr.Tab("extend"):
-                extend_seeds = gr.Textbox(
-                    label="extend seeds (default None)", placeholder="", value=None
-                )
-                left_extend_length = gr.Slider(
-                    minimum=0.0,
-                    maximum=240.0,
-                    step=0.01,
-                    value=0.0,
-                    label="Left Extend Length",
-                    interactive=True,
-                )
-                right_extend_length = gr.Slider(
-                    minimum=0.0,
-                    maximum=240.0,
-                    step=0.01,
-                    value=30.0,
-                    label="Right Extend Length",
-                    interactive=True,
-                )
-                extend_source = gr.Radio(
-                    ["text2music", "last_extend", "upload"],
-                    value="text2music",
-                    label="Extend Source",
-                    elem_id="extend_source",
-                )
-
-                extend_source_audio_upload = gr.Audio(
-                    label="Upload Audio",
-                    type="filepath",
-                    visible=False,
-                    elem_id="extend_source_audio_upload",
-                    show_download_button=True,
-                )
-                extend_source.change(
-                    fn=lambda x: gr.update(
-                        visible=x == "upload", elem_id="extend_source_audio_upload"
-                    ),
-                    inputs=[extend_source],
-                    outputs=[extend_source_audio_upload],
-                )
-
-                extend_bnt = gr.Button("Extend", variant="primary")
-                extend_outputs, extend_input_params_json = create_output_ui("Extend")
-
-                def extend_process_func(
-                    text2music_json_data,
-                    extend_input_params_json,
-                    extend_seeds,
-                    left_extend_length,
-                    right_extend_length,
-                    extend_source,
-                    extend_source_audio_upload,
-                    prompt,
-                    lyrics,
-                    infer_step,
-                    guidance_scale,
-                    scheduler_type,
-                    cfg_type,
-                    omega_scale,
-                    manual_seeds,
-                    guidance_interval,
-                    guidance_interval_decay,
-                    min_guidance_scale,
-                    use_erg_tag,
-                    use_erg_lyric,
-                    use_erg_diffusion,
-                    oss_steps,
-                    guidance_scale_text,
-                    guidance_scale_lyric,
-                ):
-                    if extend_source == "upload":
-                        src_audio_path = extend_source_audio_upload
-                        # get audio duration
-                        audio_duration = librosa.get_duration(filename=src_audio_path)
-                        json_data = {"audio_duration": audio_duration}
-                    elif extend_source == "text2music":
-                        json_data = text2music_json_data
-                        src_audio_path = json_data["audio_path"]
-                    elif extend_source == "last_extend":
-                        json_data = extend_input_params_json
-                        src_audio_path = json_data["audio_path"]
-
-                    repaint_start = -left_extend_length
-                    repaint_end = json_data["audio_duration"] + right_extend_length
-                    return text2music_process_func(
-                        format.value,
-                        json_data["audio_duration"],
-                        prompt,
-                        lyrics,
-                        infer_step,
-                        guidance_scale,
-                        scheduler_type,
-                        cfg_type,
-                        omega_scale,
-                        manual_seeds,
-                        guidance_interval,
-                        guidance_interval_decay,
-                        min_guidance_scale,
-                        use_erg_tag,
-                        use_erg_lyric,
-                        use_erg_diffusion,
-                        oss_steps,
-                        guidance_scale_text,
-                        guidance_scale_lyric,
-                        retake_seeds=extend_seeds,
-                        retake_variance=1.0,
-                        task="extend",
-                        repaint_start=repaint_start,
-                        repaint_end=repaint_end,
-                        src_audio_path=src_audio_path,
-                        lora_name_or_path=(
-                            "none"
-                            if "lora_name_or_path" not in json_data
-                            else json_data["lora_name_or_path"]
-                        ),
-                        lora_weight=(
-                            1
-                            if "lora_weight" not in json_data
-                            else json_data["lora_weight"]
-                        ),
-                    )
-
-                extend_bnt.click(
-                    fn=extend_process_func,
-                    inputs=[
-                        input_params_json,
-                        extend_input_params_json,
-                        extend_seeds,
-                        left_extend_length,
-                        right_extend_length,
-                        extend_source,
-                        extend_source_audio_upload,
-                        prompt,
-                        lyrics,
-                        infer_step,
-                        guidance_scale,
-                        scheduler_type,
-                        cfg_type,
-                        omega_scale,
-                        manual_seeds,
-                        guidance_interval,
-                        guidance_interval_decay,
-                        min_guidance_scale,
-                        use_erg_tag,
-                        use_erg_lyric,
-                        use_erg_diffusion,
-                        oss_steps,
-                        guidance_scale_text,
-                        guidance_scale_lyric,
-                    ],
-                    outputs=extend_outputs + [extend_input_params_json],
-                )
 
         def json2output(json_data):
             return (
@@ -874,30 +518,15 @@ def create_text2music_ui(
                     if "guidance_scale_lyric" in json_data
                     else 0.0
                 ),
-                (
-                    json_data["audio2audio_enable"]
-                    if "audio2audio_enable" in json_data
-                    else False
-                ),
-                (
-                    json_data["ref_audio_strength"]
-                    if "ref_audio_strength" in json_data
-                    else 0.5
-                ),
-                (
-                    json_data["ref_audio_input"]
-                    if "ref_audio_input" in json_data
-                    else None
-                ),
             )
 
-        def sample_data(lora_name_or_path_):
-            json_data = sample_data_func(lora_name_or_path_)
+        def sample_data():
+            json_data = sample_data_func()
             return json2output(json_data)
 
         sample_bnt.click(
             sample_data,
-            inputs=[lora_name_or_path],
+            inputs=[],
             outputs=[
                 audio_duration,
                 prompt,
@@ -917,9 +546,6 @@ def create_text2music_ui(
                 oss_steps,
                 guidance_scale_text,
                 guidance_scale_lyric,
-                audio2audio_enable,
-                ref_audio_strength,
-                ref_audio_input,
             ],
         )
 
@@ -951,9 +577,6 @@ def create_text2music_ui(
                 oss_steps,
                 guidance_scale_text,
                 guidance_scale_lyric,
-                audio2audio_enable,
-                ref_audio_strength,
-                ref_audio_input,
             ],
         )
 
@@ -979,11 +602,6 @@ def create_text2music_ui(
             oss_steps,
             guidance_scale_text,
             guidance_scale_lyric,
-            audio2audio_enable,
-            ref_audio_strength,
-            ref_audio_input,
-            lora_name_or_path,
-            lora_weight
         ],
         outputs=outputs + [input_params_json],
     )
