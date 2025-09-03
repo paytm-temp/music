@@ -41,21 +41,21 @@ def is_silent_audio(audio_tensor, silence_threshold=0.95):
 # Supported languages for tokenization
 SUPPORT_LANGUAGES = {
     "en": 259,
-    "de": 260,
-    "fr": 262,
-    "es": 284,
-    "it": 285,
-    "pt": 286,
-    "pl": 294,
-    "tr": 295,
-    "ru": 267,
-    "cs": 293,
-    "nl": 297,
-    "ar": 5022,
-    "zh": 5023,
-    "ja": 5412,
-    "hu": 5753,
-    "ko": 6152,
+    # "de": 260,
+    # "fr": 262,
+    # "es": 284,
+    # "it": 285,
+    # "pt": 286,
+    # "pl": 294,
+    # "tr": 295,
+    # "ru": 267,
+    # "cs": 293,
+    # "nl": 297,
+    # "ar": 5022,
+    # "zh": 5023,
+    # "ja": 5412,
+    # "hu": 5753,
+    # "ko": 6152,
     "hi": 6680,
 }
 
@@ -95,107 +95,7 @@ class Text2MusicDataset(Dataset):
 
         # Initialize language segmentation
         self.lang_segment = LangSegment()
-        self.lang_segment.setfilters(
-            [
-                "af",
-                "am",
-                "an",
-                "ar",
-                "as",
-                "az",
-                "be",
-                "bg",
-                "bn",
-                "br",
-                "bs",
-                "ca",
-                "cs",
-                "cy",
-                "da",
-                "de",
-                "dz",
-                "el",
-                "en",
-                "eo",
-                "es",
-                "et",
-                "eu",
-                "fa",
-                "fi",
-                "fo",
-                "fr",
-                "ga",
-                "gl",
-                "gu",
-                "he",
-                "hi",
-                "hr",
-                "ht",
-                "hu",
-                "hy",
-                "id",
-                "is",
-                "it",
-                "ja",
-                "jv",
-                "ka",
-                "kk",
-                "km",
-                "kn",
-                "ko",
-                "ku",
-                "ky",
-                "la",
-                "lb",
-                "lo",
-                "lt",
-                "lv",
-                "mg",
-                "mk",
-                "ml",
-                "mn",
-                "mr",
-                "ms",
-                "mt",
-                "nb",
-                "ne",
-                "nl",
-                "nn",
-                "no",
-                "oc",
-                "or",
-                "pa",
-                "pl",
-                "ps",
-                "pt",
-                "qu",
-                "ro",
-                "ru",
-                "rw",
-                "se",
-                "si",
-                "sk",
-                "sl",
-                "sq",
-                "sr",
-                "sv",
-                "sw",
-                "ta",
-                "te",
-                "th",
-                "tl",
-                "tr",
-                "ug",
-                "uk",
-                "ur",
-                "vi",
-                "vo",
-                "wa",
-                "xh",
-                "zh",
-                "zu",
-            ]
-        )
+        self.lang_segment.setfilters(["hi", "en"])
 
         # Initialize lyric tokenizer
         self.lyric_tokenizer = VoiceBpeTokenizer()
@@ -269,11 +169,17 @@ class Text2MusicDataset(Dataset):
         # Detect language
         lang, langs, lang_counter = self.get_lang(lyrics)
 
-        # Determine most common language
+        # Determine language based on script and counter
         most_common_lang = "en"
         if len(lang_counter) > 0:
             most_common_lang = lang_counter[0][0]
             if most_common_lang == "":
+                most_common_lang = "en"
+            
+            # Force to Hindi if Devanagari script is present
+            if any("\u0900" <= c <= "\u097F" for c in lyrics):
+                most_common_lang = "hi"
+            elif most_common_lang not in ["hi", "en"]:
                 most_common_lang = "en"
 
         if most_common_lang not in SUPPORT_LANGUAGES:
@@ -284,13 +190,13 @@ class Text2MusicDataset(Dataset):
             lang = lang_seg["lang"]
             text = lang_seg["text"]
 
-            # Normalize language codes
-            if lang not in SUPPORT_LANGUAGES:
-                lang = "en"
-            if "zh" in lang:
-                lang = "zh"
-            if "spa" in lang:
-                lang = "es"
+            # Force language to either Hindi or English
+            if lang not in ["hi", "en"]:
+                # Check if text contains Devanagari script
+                if any("\u0900" <= c <= "\u097F" for c in text):
+                    lang = "hi"
+                else:
+                    lang = "en"
 
             # Process each line in the segment
             lines = text.split("\n")

@@ -1,3 +1,5 @@
+data
+hindi_lora_dataset
 *.pt
 *.ckpt
 *.onnx

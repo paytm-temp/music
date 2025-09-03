@@ -25,9 +25,9 @@ from diffusers.configuration_utils import ConfigMixin, register_to_config
 
 
 try:
-    from music_log_mel import LogMelSpectrogram
+    from music_log_mel import MusicLogMel
 except ImportError:
-    from .music_log_mel import LogMelSpectrogram
+    from .music_log_mel import MusicLogMel
 
 
 def drop_path(
@@ -544,7 +544,7 @@ class ADaMoSHiFiGANV1(ModelMixin, ConfigMixin, FromOriginalModelMixin):
             post_conv_kernel_size=post_conv_kernel_size,
         )
         self.sampling_rate = sampling_rate
-        self.mel_transform = LogMelSpectrogram(
+        self.mel_transform = MusicLogMel(
             sample_rate=sampling_rate,
             n_fft=n_fft,
             win_length=win_length,

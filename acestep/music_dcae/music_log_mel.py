@@ -64,7 +64,7 @@ class LinearSpectrogram(nn.Module):
         return spec
 
 
-class LogMelSpectrogram(nn.Module):
+class MusicLogMel(nn.Module):
     def __init__(
         self,
         sample_rate=44100,
